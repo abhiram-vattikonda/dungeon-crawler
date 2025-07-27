@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using Node = DungeonRoomModules.Node;
+using roomSide = DungeonRoomModules.roomSide;
+using roomTypes = DungeonRoomModules.roomTypes;
 
 public class DungeonGeneratorFlow : MonoBehaviour
 {
@@ -12,60 +15,33 @@ public class DungeonGeneratorFlow : MonoBehaviour
     [SerializeField] private GameObject entrance;
     [SerializeField] private GameObject shop;
 
-    enum roomTypes
-    {
-        Normal,
-        Reward,
-        Hub,
-        Entrance,
-        Shop,
-        Boss
-    }
-
-    enum roomSide
-    {
-        Bottom, Right, Top, Left
-    }
-
-    class Node
-    {
-        public roomTypes room_type { get; }
-        public int nodeID { get; }
-        public Dictionary<roomSide, int> connectingIDs { get; }
-        public Node(int nodeNum, roomTypes roomtype, List<int> connections = null)
-        {
-            this.room_type = roomtype;
-            this.nodeID = nodeNum;
-            int sideCount = 0;
-            for (int i = 0; i < connections.Count; i++)
-            {
-                connectingIDs.Add((roomSide)sideCount, connections[i]);
-            }
-        }
-    }
-
-    private List<Node> flow = new List<Node>
-    {
-        new Node(0, roomTypes.Entrance, new List<int> { 1, -1, -1, -1}),
-        new Node(1, roomTypes.Normal, new List<int> { 2, -1, 0, -1}),
-        new Node(2, roomTypes.Normal, new List<int> { 3, -1, 1, -1}),
-        new Node(3, roomTypes.Hub, new List < int > { 4, 6, 2, -1}),
-        new Node(4, roomTypes.Normal, new List < int > { -1, -1, 3, 5}),
-        new Node(5, roomTypes.Reward, new List < int > { -1, 4, 1, -1}),
-        new Node(6, roomTypes.Normal, new List < int > { -1, 7, -1, 3}),
-        new Node(7, roomTypes.Hub, new List < int > { 8, 10, -1, 6}),
-        new Node(8, roomTypes.Normal, new List < int > { 9, -1, 8, -1}),
-        new Node(9, roomTypes.Shop, new List < int > { -1, -1, 8, -1}),
-        new Node(10, roomTypes.Normal, new List < int > { -1, -1, 11, 7}),
-        new Node(11, roomTypes.Normal, new List < int > { 10, -1, -1, 12}),
-        new Node(12, roomTypes.Reward, new List < int > { 7, 11, -1, -1}),
-    };
+    
 
     private void Start()
     {
+        List<Node> flow = FlowPatterns.flows[UnityEngine.Random.Range(0, FlowPatterns.flows.Count)];
 
+        Graph newGraph = new Graph();
+        foreach (Node node in flow)
+        {
+            foreach (int connection in node.connectingIDs)
+            {
+                newGraph.AddEdge(node.nodeID, connection);
+            }
+
+        }
+
+
+
+        RenderDungeon(flow);
+       
+    }
+
+
+    private void RenderDungeon(List<Node> flow)
+    {
         List<GameObject> renderedRooms = new List<GameObject>();
-        Vector3 pos = new Vector3 (0f, 0f, 0f);
+        Vector3 pos = new Vector3(0f, 0f, 0f);
         Dictionary<roomSide, Vector3> additionPos = new Dictionary<roomSide, Vector3>
         {
             { roomSide.Top, new Vector3(0f, 1f, 0f) },
@@ -85,7 +61,7 @@ public class DungeonGeneratorFlow : MonoBehaviour
             }
             else if (room.room_type == roomTypes.Normal)
             {
-                newRoom= Instantiate<GameObject>(normalRooms[Random.Range(0, normalRooms.Count)], pos, Quaternion.identity);
+                newRoom = Instantiate<GameObject>(normalRooms[Random.Range(0, normalRooms.Count)], pos, Quaternion.identity);
             }
             else if (room.room_type == roomTypes.Reward)
             {
@@ -101,16 +77,15 @@ public class DungeonGeneratorFlow : MonoBehaviour
             }
 
             renderedRooms.Add(newRoom);
+            pos += new Vector3(UnityEngine.Random.Range(-25, 25), UnityEngine.Random.Range(0, 25), 0);
 
-            Dictionary<roomSide, int> connectingNodes = room.connectingIDs;
-            foreach (int key in connectingNodes.Keys)
+
+            List<int> connectingNodes = room.connectingIDs;
+            foreach (int connectingNode in connectingNodes)
             {
-                for (int i = 0; i < 4; i++)
+                if (connectingNode < renderedRooms.Count)
                 {
-                    if (connectingNodes[(roomSide)i] != -1)
-                    {
-
-                    }
+                    RenderLine(newRoom.transform.position, renderedRooms[connectingNode].transform.position);
                 }
             }
         }
