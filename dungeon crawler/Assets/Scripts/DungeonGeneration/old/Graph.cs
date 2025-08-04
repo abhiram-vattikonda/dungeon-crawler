@@ -27,6 +27,5 @@ public class Graph
             adj[v].Remove(u);
         }
     }
-ss
 
 }
