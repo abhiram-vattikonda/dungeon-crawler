@@ -9,11 +9,14 @@ public class PathGeneration : MonoBehaviour
 {
     public static PathGeneration Instance { get; private set; }
 
-    public int[,] dungeon;
-    public Vector2Int dimensions = new Vector2Int(7, 5);
+    public string[,] dungeon;
+    public Vector2Int dimensions;
     
     private Vector2Int start;
     private int dungeonPathLength = 13;
+    private int branchNumber = 3;
+    private Vector2Int branchLenghtRange = new Vector2Int(1, 4);
+    private List<Vector2Int> branchCandidates = new List<Vector2Int>();
 
 
 
@@ -23,34 +26,31 @@ public class PathGeneration : MonoBehaviour
             Destroy(Instance);
         Instance = this;
 
-        dungeon = new int[dimensions.x, dimensions.y];
+        dimensions = new Vector2Int(9, 9);
     }
 
-
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-        start = new Vector2Int(UnityEngine.Random.Range(0, dimensions.x), 0);
-        
-    }
 
     public void GenerateDungeonMap()
     {
         InitializeGrid();
-        GeneratePath(start, dungeonPathLength);
+        GeneratePath(start, dungeonPathLength, "C");
+        GenerateBranchs();
         PrintGrid();
     }    
 
 
     private void InitializeGrid()
     {
+
+        start = new Vector2Int(UnityEngine.Random.Range(0, dimensions.x), 0);
+
+        dungeon = new string[dimensions.x, dimensions.y];
+
         for (int i = 0; i < dimensions.y; i++)
         {
             for (int j = 0; j < dimensions.x; j++)
             {
-                dungeon[j, i] = 0;
+                dungeon[j, i] = "";
             }
         }
     }
@@ -70,7 +70,7 @@ public class PathGeneration : MonoBehaviour
         }
     }
 
-    private bool GeneratePath(Vector2Int current, int length)
+    private bool GeneratePath(Vector2Int current, int length, string mark)
     {
         if (length <= 0)
         {
@@ -101,15 +101,22 @@ public class PathGeneration : MonoBehaviour
             
             if (next.x >= 0 && next.x < dimensions.x &&
                 next.y >= 0 && next.y < dimensions.y &&
-                dungeon[next.x, next.y] == 0)
+                dungeon[next.x, next.y] == "")
             {
-                dungeon[next.x, next.y] = length;
+                if (length != dungeonPathLength)
+                    dungeon[next.x, next.y] = mark;
+                else
+                    dungeon[next.x, next.y] = "S";
 
-                if (GeneratePath(next, length - 1))
+
+                if (length > 0)
+                    branchCandidates.Add(new Vector2Int(next.x, next.y));
+                if (GeneratePath(next, length - 1, mark))
                     return true;
 
                 
-                dungeon[next.x, next.y] = 0;
+                dungeon[next.x, next.y] = "";
+                branchCandidates.Remove(new Vector2Int(next.x, next.y));
             }
         }
 
@@ -117,6 +124,26 @@ public class PathGeneration : MonoBehaviour
     }
 
 
+
+    public void GenerateBranchs()
+    {
+        int branchsCreated = 0;
+        Vector2Int candidate;
+
+        while (branchsCreated < branchNumber && branchCandidates.Count > 0)
+        {
+            candidate = branchCandidates[UnityEngine.Random.Range(0, branchCandidates.Count - 1)];
+            if (GeneratePath(candidate, UnityEngine.Random.Range(branchLenghtRange.x, branchLenghtRange.y), (branchsCreated+1).ToString()))
+                branchsCreated += 1;
+
+            else
+                branchCandidates.Remove(candidate);
+
+        }
+
+
+
+    }
 
 
 }

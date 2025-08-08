@@ -9,6 +9,14 @@ public class Player : MonoBehaviour
     private float playerSpeed = 10f;
 
 
+
+    private void Awake()
+    {
+        if (instance == null)
+            instance = this;
+
+    }
+
     void Start()
     {
         
@@ -24,5 +32,17 @@ public class Player : MonoBehaviour
     {
         Vector2 moveVector = PlayerInputManager.instance.playerMovementValue;
         transform.position += new Vector3(moveVector.x, moveVector.y, 0) * Time.deltaTime * playerSpeed;
+    }
+
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        PlayerRoomObserver.Instance.PlayerEnteredRoom(collision.gameObject);
+    }
+
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        PlayerRoomObserver.Instance.PlayerExitedRoom(collision.gameObject);
     }
 }
